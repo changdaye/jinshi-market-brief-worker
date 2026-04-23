@@ -15,18 +15,45 @@ export function buildChatCompletionUrl(baseUrl: string): string {
   return normalized.endsWith("/v1") ? `${normalized}/chat/completions` : `${normalized}/v1/chat/completions`;
 }
 
+export function extractAssistantText(data: {
+  choices?: Array<{ message?: { content?: string | null; reasoning_content?: string | null } }>;
+}): string {
+  const message = data.choices?.[0]?.message;
+  return message?.content?.trim() || message?.reasoning_content?.trim() || "";
+}
+
+export function extractStreamedAssistantText(raw: string): string {
+  const chunks: string[] = [];
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data:")) continue;
+    const data = trimmed.slice(5).trim();
+    if (!data || data === "[DONE]") continue;
+    try {
+      const parsed = JSON.parse(data) as {
+        choices?: Array<{ delta?: { content?: string; reasoning_content?: string } }>;
+      };
+      const delta = parsed.choices?.[0]?.delta;
+      const text = delta?.content ?? delta?.reasoning_content;
+      if (text) chunks.push(text);
+    } catch {
+      continue;
+    }
+  }
+  return chunks.join("").trim();
+}
+
 export async function analyzeWithLLM(config: BriefConfig, items: JinshiDigestItem[]): Promise<string> {
   const sourceText = items
-    .slice(0, 40)
+    .slice(0, 24)
     .map((item, index) => {
       const flags = [item.sourceType === "flash" ? "快讯" : "文章", item.important ? "重要" : "普通"];
       const lines = [
-        `${index + 1}. [${flags.join("/")}] ${item.title}`,
+        `${index + 1}. [${flags.join("/")}] ${truncate(item.title, 80)}`,
         `   时间: ${item.rawTimeText || item.publishedAt}`
       ];
-      if (item.topic) lines.push(`   主题: ${item.topic}`);
-      if (item.summary) lines.push(`   摘要: ${truncate(item.summary, 180)}`);
-      lines.push(`   链接: ${item.link}`);
+      if (item.topic) lines.push(`   主题: ${truncate(item.topic, 40)}`);
+      if (item.summary) lines.push(`   摘要: ${truncate(item.summary, 100)}`);
       return lines.join("\n");
     })
     .join("\n");
@@ -45,26 +72,26 @@ export async function analyzeWithLLM(config: BriefConfig, items: JinshiDigestIte
   };
 
   const url = buildChatCompletionUrl(config.llmBaseUrl);
-  const response = await fetch(url, buildRequest(config.llmApiKey, config.requestTimeoutMs, payload));
+  const response = await fetch(url, buildRequest(config.llmApiKey, config.requestTimeoutMs, { ...payload, stream: true }));
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`LLM API HTTP ${response.status}: ${text.slice(0, 500)}`);
+    throw new Error(`LLM stream API HTTP ${response.status}: ${text.slice(0, 500)}`);
+  }
+  const streamed = extractStreamedAssistantText(await response.text());
+  if (streamed) return streamed;
+
+  const fallbackResponse = await fetch(url, buildRequest(config.llmApiKey, config.requestTimeoutMs, payload));
+  if (!fallbackResponse.ok) {
+    const text = await fallbackResponse.text();
+    throw new Error(`LLM API HTTP ${fallbackResponse.status}: ${text.slice(0, 500)}`);
   }
 
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+  const fallbackData = (await fallbackResponse.json()) as {
+    choices?: Array<{ message?: { content?: string | null; reasoning_content?: string | null } }>;
   };
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (content) return content;
-
-  const streamResponse = await fetch(url, buildRequest(config.llmApiKey, 60_000, { ...payload, stream: true }));
-  if (!streamResponse.ok) {
-    const text = await streamResponse.text();
-    throw new Error(`LLM stream API HTTP ${streamResponse.status}: ${text.slice(0, 500)}`);
-  }
-  const streamed = parseSseText(await streamResponse.text());
-  if (!streamed) throw new Error("LLM returned empty response");
-  return streamed;
+  const content = extractAssistantText(fallbackData);
+  if (!content) throw new Error("LLM returned empty response");
+  return content;
 }
 
 function buildRequest(apiKey: string, timeoutMs: number, payload: Record<string, unknown>): RequestInit {
@@ -77,22 +104,4 @@ function buildRequest(apiKey: string, timeoutMs: number, payload: Record<string,
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(timeoutMs)
   };
-}
-
-function parseSseText(raw: string): string {
-  const chunks: string[] = [];
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("data:")) continue;
-    const data = trimmed.slice(5).trim();
-    if (!data || data === "[DONE]") continue;
-    try {
-      const parsed = JSON.parse(data) as { choices?: Array<{ delta?: { content?: string } }> };
-      const delta = parsed.choices?.[0]?.delta?.content;
-      if (delta) chunks.push(delta);
-    } catch {
-      continue;
-    }
-  }
-  return chunks.join("").trim();
 }
