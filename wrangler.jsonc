@@ -32,7 +32,10 @@
     "REQUEST_TIMEOUT_MS": "15000",
     "FETCH_WINDOW_HOURS": "3",
     "MAX_ITEMS_PER_DIGEST": "60",
+    "LLM_BASE_URL": "http://34.146.152.231:8317/v1",
     "LLM_MODEL": "gpt-5.4",
+    "JINSHI_HOME_URL": "https://www.jin10.com/",
+    "JINSHI_XNEWS_URL": "https://xnews.jin10.com/",
     "FAILURE_ALERT_THRESHOLD": "1",
     "FAILURE_ALERT_COOLDOWN_MINUTES": "180"
   }
