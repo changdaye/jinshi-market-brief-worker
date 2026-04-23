@@ -14,15 +14,15 @@
   "kv_namespaces": [
     {
       "binding": "RUNTIME_KV",
-      "id": "00000000000000000000000000000000",
-      "preview_id": "11111111111111111111111111111111"
+      "id": "2ba4f708473c40ef865c5623cc01baef",
+      "preview_id": "2ba4f708473c40ef865c5623cc01baef"
     }
   ],
   "d1_databases": [
     {
       "binding": "BRIEF_DB",
       "database_name": "jinshi-market-brief",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "04238aea-af8b-4a79-a8aa-0522dc93b2f2",
       "migrations_dir": "migrations"
     }
   ],
