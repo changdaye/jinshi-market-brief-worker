@@ -1,6 +1,6 @@
-# jin10-market-brief-worker
+# jinshi-market-brief-worker
 
-Cloudflare Worker project for scraping Jin10 web content, generating market briefs with GPT-5.4, and pushing summaries to Feishu.
+Cloudflare Worker project for scraping Jinshi web content, generating market briefs with GPT-5.4, and pushing summaries to Feishu.
 
 ## Status
 

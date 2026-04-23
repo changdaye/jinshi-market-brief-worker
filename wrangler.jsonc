@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "jin10-market-brief-worker",
+  "name": "jinshi-market-brief-worker",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-23",
   "workers_dev": true,
@@ -21,7 +21,7 @@
   "d1_databases": [
     {
       "binding": "BRIEF_DB",
-      "database_name": "jin10-market-brief",
+      "database_name": "jinshi-market-brief",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
