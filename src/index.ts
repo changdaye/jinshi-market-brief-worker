@@ -77,7 +77,8 @@ async function buildBrief(config: BriefConfig, now: Date): Promise<{ items: Jins
       analysis,
       aiAnalysis: true
     };
-  } catch {
+  } catch (error) {
+    console.error("LLM analyze failed", error instanceof Error ? error.message : String(error));
     return {
       items: snapshot.items,
       message: buildFallbackMessage(snapshot.items, now),
