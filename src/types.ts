@@ -1,11 +1,10 @@
 export interface Env {
+  AI: Ai;
   RUNTIME_KV: KVNamespace;
   BRIEF_DB: D1Database;
   FEISHU_WEBHOOK: string;
   FEISHU_SECRET?: string;
   MANUAL_TRIGGER_TOKEN?: string;
-  LLM_BASE_URL: string;
-  LLM_API_KEY: string;
   LLM_MODEL?: string;
   DIGEST_INTERVAL_HOURS?: string;
   HEARTBEAT_INTERVAL_HOURS?: string;
@@ -22,8 +21,6 @@ export interface BriefConfig {
   feishuWebhook: string;
   feishuSecret: string;
   manualTriggerToken: string;
-  llmBaseUrl: string;
-  llmApiKey: string;
   llmModel: string;
   digestIntervalHours: number;
   heartbeatIntervalHours: number;

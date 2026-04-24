@@ -1,7 +1,7 @@
 # jinshi-market-brief-worker
 
 一个基于 **Cloudflare Workers + D1 + KV** 的金十网页快照简报项目。  
-它会抓取 `jin10.com` 与 `xnews.jin10.com` 的公开网页内容，用 **GPT-5.4** 生成一份中文市场简报，并推送到飞书。
+它会抓取 `jin10.com` 与 `xnews.jin10.com` 的公开网页内容，用 **Cloudflare Workers AI** 生成一份中文市场简报，并推送到飞书。
 
 ## 功能
 
@@ -9,7 +9,7 @@
 - 数据源来自：
   - `https://www.jin10.com/` 首页快讯区
   - `https://xnews.jin10.com/` 头条列表区
-- 使用 GPT-5.4 生成中文市场摘要
+- 使用 Workers AI 生成中文市场摘要（默认最低成本模型）
 - 飞书机器人推送
 - 24 小时心跳
 - 连续失败告警
@@ -50,7 +50,6 @@ curl http://127.0.0.1:8787/health
 - `REQUEST_TIMEOUT_MS`
 - `FETCH_WINDOW_HOURS`
 - `MAX_ITEMS_PER_DIGEST`
-- `LLM_BASE_URL`
 - `LLM_MODEL`
 - `JINSHI_HOME_URL`
 - `JINSHI_XNEWS_URL`
@@ -63,7 +62,6 @@ curl http://127.0.0.1:8787/health
 
 - `FEISHU_WEBHOOK`
 - `FEISHU_SECRET`
-- `LLM_API_KEY`
 - `MANUAL_TRIGGER_TOKEN`
 
 ## 手动触发
@@ -86,5 +84,6 @@ curl -X POST \
 ## 风险说明
 
 - 本项目基于网页快照抓取，不是金十官方授权数据接入
+- AI 能力由 Cloudflare Workers AI 提供，默认模型为低成本文本模型
 - 页面结构、文案、链接结构变化会影响抓取结果
 - 站点条款与数据使用限制需要你自行评估并承担合规责任

@@ -18,6 +18,9 @@
       "preview_id": "2ba4f708473c40ef865c5623cc01baef"
     }
   ],
+  "ai": {
+    "binding": "AI"
+  },
   "d1_databases": [
     {
       "binding": "BRIEF_DB",
@@ -32,8 +35,7 @@
     "REQUEST_TIMEOUT_MS": "15000",
     "FETCH_WINDOW_HOURS": "3",
     "MAX_ITEMS_PER_DIGEST": "60",
-    "LLM_BASE_URL": "http://34.146.152.231:8317/v1",
-    "LLM_MODEL": "gpt-5.4",
+    "LLM_MODEL": "@cf/meta/llama-3.2-1b-instruct",
     "JINSHI_HOME_URL": "https://www.jin10.com/",
     "JINSHI_XNEWS_URL": "https://xnews.jin10.com/",
     "FAILURE_ALERT_THRESHOLD": "1",

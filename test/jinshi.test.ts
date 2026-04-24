@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { buildChatCompletionUrl } from "../src/services/llm";
 import { parseHomepageFlashItems, parseJinshiTimestampFromId, parseRelativeTimeText, parseXnewsItems } from "../src/services/jinshi";
 
 const homepageFixture = `
@@ -88,12 +87,5 @@ describe("parseRelativeTimeText", () => {
   it("supports hour-based relative time strings", () => {
     const now = new Date("2026-04-23T12:00:00.000Z");
     expect(parseRelativeTimeText("3小时前", now)).toBe("2026-04-23T09:00:00.000Z");
-  });
-});
-
-describe("buildChatCompletionUrl", () => {
-  it("accepts both base URLs with and without a trailing /v1", () => {
-    expect(buildChatCompletionUrl("http://example.com")).toBe("http://example.com/v1/chat/completions");
-    expect(buildChatCompletionUrl("http://example.com/v1")).toBe("http://example.com/v1/chat/completions");
   });
 });

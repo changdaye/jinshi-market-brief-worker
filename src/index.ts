@@ -14,7 +14,7 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
   const now = new Date();
 
   try {
-    const result = await buildBrief(config, now);
+    const result = await buildBrief(env, config, now);
     const runId = crypto.randomUUID();
     await insertDigestRun(env.BRIEF_DB, {
       id: runId,
@@ -63,14 +63,14 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
   }
 }
 
-async function buildBrief(config: BriefConfig, now: Date): Promise<{ items: JinshiDigestItem[]; message: string; analysis?: string; aiAnalysis: boolean }> {
+async function buildBrief(env: Env, config: BriefConfig, now: Date): Promise<{ items: JinshiDigestItem[]; message: string; analysis?: string; aiAnalysis: boolean }> {
   const snapshot = await fetchJinshiSnapshot(config, now);
   if (snapshot.items.length === 0) {
     throw new Error("Jinshi snapshot returned no items");
   }
 
   try {
-    const analysis = await analyzeWithLLM(config, snapshot.items);
+    const analysis = await analyzeWithLLM(config, env.AI, snapshot.items);
     return {
       items: snapshot.items,
       message: buildDigestMessage(analysis, snapshot.items, now),

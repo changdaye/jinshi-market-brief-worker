@@ -10,40 +10,11 @@ const SYSTEM_PROMPT = `你是一位中文财经简报编辑，请基于公开网
 5. 语言简洁、面向交易者，总字数控制在900字以内。
 6. 不要使用 Markdown 标题符号 #，可直接用自然段和短列表。`;
 
-export function buildChatCompletionUrl(baseUrl: string): string {
-  const normalized = baseUrl.replace(/\/+$/, "");
-  return normalized.endsWith("/v1") ? `${normalized}/chat/completions` : `${normalized}/v1/chat/completions`;
+interface WorkersAIResult {
+  response?: string;
 }
 
-export function extractAssistantText(data: {
-  choices?: Array<{ message?: { content?: string | null; reasoning_content?: string | null } }>;
-}): string {
-  const message = data.choices?.[0]?.message;
-  return message?.content?.trim() || message?.reasoning_content?.trim() || "";
-}
-
-export function extractStreamedAssistantText(raw: string): string {
-  const chunks: string[] = [];
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("data:")) continue;
-    const data = trimmed.slice(5).trim();
-    if (!data || data === "[DONE]") continue;
-    try {
-      const parsed = JSON.parse(data) as {
-        choices?: Array<{ delta?: { content?: string; reasoning_content?: string } }>;
-      };
-      const delta = parsed.choices?.[0]?.delta;
-      const text = delta?.content ?? delta?.reasoning_content;
-      if (text) chunks.push(text);
-    } catch {
-      continue;
-    }
-  }
-  return chunks.join("").trim();
-}
-
-export async function analyzeWithLLM(config: BriefConfig, items: JinshiDigestItem[]): Promise<string> {
+export async function analyzeWithLLM(config: BriefConfig, ai: Ai, items: JinshiDigestItem[]): Promise<string> {
   const sourceText = items
     .slice(0, 24)
     .map((item, index) => {
@@ -58,8 +29,7 @@ export async function analyzeWithLLM(config: BriefConfig, items: JinshiDigestIte
     })
     .join("\n");
 
-  const payload = {
-    model: config.llmModel,
+  const result = (await ai.run(config.llmModel, {
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       {
@@ -67,41 +37,11 @@ export async function analyzeWithLLM(config: BriefConfig, items: JinshiDigestIte
         content: `以下是金十网页公开内容快照，请生成一份面向交易者的中文市场简报：\n\n${sourceText}`
       }
     ],
-    temperature: 0.3,
-    max_tokens: 1800
-  };
+    max_tokens: 900,
+    temperature: 0.3
+  })) as WorkersAIResult;
 
-  const url = buildChatCompletionUrl(config.llmBaseUrl);
-  const response = await fetch(url, buildRequest(config.llmApiKey, config.requestTimeoutMs, { ...payload, stream: true }));
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`LLM stream API HTTP ${response.status}: ${text.slice(0, 500)}`);
-  }
-  const streamed = extractStreamedAssistantText(await response.text());
-  if (streamed) return streamed;
-
-  const fallbackResponse = await fetch(url, buildRequest(config.llmApiKey, config.requestTimeoutMs, payload));
-  if (!fallbackResponse.ok) {
-    const text = await fallbackResponse.text();
-    throw new Error(`LLM API HTTP ${fallbackResponse.status}: ${text.slice(0, 500)}`);
-  }
-
-  const fallbackData = (await fallbackResponse.json()) as {
-    choices?: Array<{ message?: { content?: string | null; reasoning_content?: string | null } }>;
-  };
-  const content = extractAssistantText(fallbackData);
-  if (!content) throw new Error("LLM returned empty response");
+  const content = result.response?.trim();
+  if (!content) throw new Error("Workers AI returned empty response");
   return content;
-}
-
-function buildRequest(apiKey: string, timeoutMs: number, payload: Record<string, unknown>): RequestInit {
-  return {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(timeoutMs)
-  };
 }
