@@ -69,6 +69,9 @@ export interface RuntimeState {
   lastHeartbeatAt?: string;
   lastAlertAt?: string;
   lastError?: string;
+  quietDigestCount?: number;
+  quietDigestStartedAt?: string;
+  quietDigestLastAt?: string;
   consecutiveFailures: number;
 }
 

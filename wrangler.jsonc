@@ -3,19 +3,20 @@
   "name": "jinshi-market-brief-worker",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-23",
+  "account_id": "d66336592b3f62650da1e5fa60e4a28c",
   "workers_dev": true,
   "preview_urls": false,
   "observability": {
     "enabled": true
   },
   "triggers": {
-    "crons": ["0 */3 * * *"]
+    "crons": ["0 */2 * * *"]
   },
   "kv_namespaces": [
     {
       "binding": "RUNTIME_KV",
-      "id": "2ba4f708473c40ef865c5623cc01baef",
-      "preview_id": "2ba4f708473c40ef865c5623cc01baef"
+      "id": "de5568c9080b418996576f9b3fe3cc32",
+      "preview_id": "de5568c9080b418996576f9b3fe3cc32"
     }
   ],
   "ai": {
@@ -25,15 +26,15 @@
     {
       "binding": "BRIEF_DB",
       "database_name": "jinshi-market-brief",
-      "database_id": "04238aea-af8b-4a79-a8aa-0522dc93b2f2",
+      "database_id": "b35e3f22-71a7-42b4-9550-001f632c1d34",
       "migrations_dir": "migrations"
     }
   ],
   "vars": {
-    "DIGEST_INTERVAL_HOURS": "3",
+    "DIGEST_INTERVAL_HOURS": "2",
     "HEARTBEAT_INTERVAL_HOURS": "24",
     "REQUEST_TIMEOUT_MS": "15000",
-    "FETCH_WINDOW_HOURS": "3",
+    "FETCH_WINDOW_HOURS": "2",
     "MAX_ITEMS_PER_DIGEST": "60",
     "LLM_MODEL": "@cf/meta/llama-3.1-8b-instruct",
     "JINSHI_HOME_URL": "https://www.jin10.com/",

@@ -2,18 +2,8 @@ import type { JinshiDigestItem, RuntimeState } from "../types";
 import { truncate } from "./value";
 
 const MAX_MESSAGE_LENGTH = 2600;
-const MAX_REFERENCE_LINKS = 1;
-
 export function buildDigestMessage(analysis: string, items: JinshiDigestItem[], detailedReportUrl?: string): string {
   const lines = [normalizeAnalysisText(analysis)];
-
-  const messageLinks = items
-    .slice(0, MAX_REFERENCE_LINKS)
-    .map((item, index) => `${index + 1}. ${truncate(item.title, 28)}\n${item.link}`);
-
-  if (messageLinks.length > 0) {
-    lines.push("", "延伸阅读:", ...messageLinks);
-  }
 
   if (detailedReportUrl) {
     lines.push("", "详细版报告:", detailedReportUrl);
@@ -28,10 +18,6 @@ export function buildFallbackMessage(items: JinshiDigestItem[], detailedReportUr
   for (const [index, item] of items.slice(0, 5).entries()) {
     lines.push(`${index + 1}. [${item.sourceType === "flash" ? "快讯" : "文章"}] ${truncate(item.title, 42)}`);
     if (item.summary) lines.push(`   摘要: ${truncate(item.summary, 50)}`);
-  }
-
-  if (items[0]) {
-    lines.push("", "延伸阅读:", `1. ${truncate(items[0].title, 28)}\n${items[0].link}`);
   }
 
   if (detailedReportUrl) {
@@ -58,6 +44,15 @@ export function buildFailureAlertMessage(state: RuntimeState, threshold: number)
     `告警阈值: ${threshold}`,
     `上次成功: ${state.lastSuccessAt ?? "无"}`,
     `最近错误: ${state.lastError ?? "unknown"}`
+  ].join("\n");
+}
+
+export function buildWakeSummaryMessage(message: string, quietDigestCount: number): string {
+  return [
+    "🌅 隔夜汇总",
+    `北京时间 22:00 - 08:00 静默时段内累计更新 ${quietDigestCount} 次，以下为最新一版摘要：`,
+    "",
+    message,
   ].join("\n");
 }
 
