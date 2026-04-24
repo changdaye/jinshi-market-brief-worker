@@ -2,7 +2,7 @@
   "name": "jinshi-market-brief-worker",
   "version": "0.1.0",
   "private": true,
-  "description": "Cloudflare Worker that scrapes Jinshi web content, generates market briefs with GPT-5.4, and pushes summaries to Feishu.",
+  "description": "Cloudflare Worker that scrapes Jinshi web content, generates market briefs with Cloudflare Workers AI, and pushes summaries to Feishu.",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
