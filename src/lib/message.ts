@@ -1,38 +1,41 @@
 import type { JinshiDigestItem, RuntimeState } from "../types";
-import { formatBeijingDateTime, truncate } from "./value";
+import { truncate } from "./value";
 
-const MAX_MESSAGE_LENGTH = 3800;
+const MAX_MESSAGE_LENGTH = 2600;
+const MAX_REFERENCE_LINKS = 1;
 
-export function buildDigestMessage(analysis: string, items: JinshiDigestItem[], now = new Date()): string {
-  const lines = [
-    `🧭 金十市场简报（网页快照版）`,
-    `时间: ${formatBeijingDateTime(now)} 北京时间`,
-    `样本数: ${items.length}`,
-    `来源: jin10.com / xnews.jin10.com 公开网页快照`,
-    "",
-    analysis.trim()
-  ];
+export function buildDigestMessage(analysis: string, items: JinshiDigestItem[], detailedReportUrl?: string): string {
+  const lines = [normalizeAnalysisText(analysis)];
 
-  const messageLinks = items.slice(0, 5).map((item, index) => `${index + 1}. [${item.sourceType === "flash" ? "快讯" : "文章"}] ${truncate(item.title, 48)}\n${item.link}`);
+  const messageLinks = items
+    .slice(0, MAX_REFERENCE_LINKS)
+    .map((item, index) => `${index + 1}. ${truncate(item.title, 28)}\n${item.link}`);
+
   if (messageLinks.length > 0) {
-    lines.push("", "参考链接:", ...messageLinks);
+    lines.push("", "延伸阅读:", ...messageLinks);
   }
+
+  if (detailedReportUrl) {
+    lines.push("", "详细版报告:", detailedReportUrl);
+  }
+
   return limitMessage(lines.join("\n"));
 }
 
-export function buildFallbackMessage(items: JinshiDigestItem[], now = new Date()): string {
-  const lines = [
-    `🧭 金十市场简报（降级版）`,
-    `时间: ${formatBeijingDateTime(now)} 北京时间`,
-    `说明: GPT 分析暂不可用，以下为网页快照中的重点条目`,
-    ""
-  ];
+export function buildFallbackMessage(items: JinshiDigestItem[], detailedReportUrl?: string): string {
+  const lines = ["说明: GPT 分析暂不可用，以下为重点条目", ""];
 
-  for (const [index, item] of items.slice(0, 10).entries()) {
-    lines.push(`${index + 1}. [${item.sourceType === "flash" ? "快讯" : "文章"}] ${item.title}`);
-    if (item.summary) lines.push(`   摘要: ${truncate(item.summary, 80)}`);
-    if (item.rawTimeText) lines.push(`   时间: ${item.rawTimeText}`);
-    lines.push(`   链接: ${item.link}`);
+  for (const [index, item] of items.slice(0, 5).entries()) {
+    lines.push(`${index + 1}. [${item.sourceType === "flash" ? "快讯" : "文章"}] ${truncate(item.title, 42)}`);
+    if (item.summary) lines.push(`   摘要: ${truncate(item.summary, 50)}`);
+  }
+
+  if (items[0]) {
+    lines.push("", "延伸阅读:", `1. ${truncate(items[0].title, 28)}\n${items[0].link}`);
+  }
+
+  if (detailedReportUrl) {
+    lines.push("", "详细版报告:", detailedReportUrl);
   }
 
   return limitMessage(lines.join("\n"));
@@ -56,6 +59,115 @@ export function buildFailureAlertMessage(state: RuntimeState, threshold: number)
     `上次成功: ${state.lastSuccessAt ?? "无"}`,
     `最近错误: ${state.lastError ?? "unknown"}`
   ].join("\n");
+}
+
+export function normalizeAnalysisText(text: string): string {
+  const cleaned = text
+    .replace(/\*\*/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  const sourceLines = cleaned
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => line !== "金十网页公开内容快照")
+    .filter((line) => line !== "以下是基于金十网页公开内容输出的交易机会简报：")
+    .filter((line) => line !== "以下是短报告：");
+
+  const reportLines: string[] = ["一、核心判断"];
+  let currentSection: "core" | "events" | "watch" = "core";
+  let eventCount = 0;
+  let watchCount = 0;
+  let hasEvents = false;
+  let hasWatch = false;
+
+  for (const line of sourceLines) {
+    if (/^(一、核心判断|核心观点|核心判断|市场主线|市场主线与情绪|今日机会)[:：]?$/.test(line)) continue;
+
+    const normalized = line
+      .replace(/^重点事件[:：]?$/, "")
+      .replace(/^后续关注[:：]?$/, "")
+      .replace(/^重点观察[:：]?$/, "")
+      .replace(/^风险提示[:：]?$/, "")
+      .trim();
+
+    if (!normalized) continue;
+    if (/^(时间:|主题:|摘要:)/.test(normalized)) continue;
+
+    if (/^(重点事件|二、重点事件|二、今日机会|二、重点观察)/.test(line)) {
+      if (!hasEvents) {
+        reportLines.push("", "二、重点事件");
+        hasEvents = true;
+      }
+      currentSection = "events";
+      continue;
+    }
+
+    if (/^(后续关注|三、后续关注|重点观察|三、重点观察|风险提示|三、风险提示)/.test(line)) {
+      if (!hasEvents) {
+        reportLines.push("", "二、重点事件");
+        hasEvents = true;
+      }
+      if (!hasWatch) {
+        reportLines.push("", "三、后续关注");
+        hasWatch = true;
+      }
+      currentSection = "watch";
+      continue;
+    }
+
+    if (/^\d+[.、]/.test(normalized) || /^[-•]/.test(normalized)) {
+      if (currentSection === "core") {
+        reportLines.push("", "二、重点事件");
+        hasEvents = true;
+        currentSection = "events";
+      }
+
+      if (currentSection === "events") {
+        if (eventCount >= 3) continue;
+        eventCount += 1;
+        reportLines.push(normalized.replace(/^[-•]\s*/, ""));
+        continue;
+      }
+
+      if (currentSection === "watch") {
+        if (watchCount >= 2) continue;
+        watchCount += 1;
+        reportLines.push(normalized.replace(/^[-•]\s*/, ""));
+      }
+      continue;
+    }
+
+    if (currentSection === "core") {
+      reportLines.push(truncate(normalized, 120));
+      continue;
+    }
+
+    if (currentSection === "events") {
+      if (eventCount >= 3) continue;
+      eventCount += 1;
+      reportLines.push(`${eventCount}. ${truncate(normalized, 90)}`);
+      continue;
+    }
+
+    if (currentSection === "watch") {
+      if (watchCount >= 2) continue;
+      watchCount += 1;
+      reportLines.push(`${watchCount}. ${truncate(normalized, 70)}`);
+    }
+  }
+
+  if (!hasEvents) {
+    reportLines.push("", "二、重点事件", "1. 暂未提炼出明确高优先级事件，请结合原始快照复核。", "2. 关注消息催化是否向相关资产扩散。");
+  }
+
+  if (!hasWatch) {
+    reportLines.push("", "三、后续关注", "1. 关注地缘风险与避险资产联动。", "2. 关注美元、黄金与原油波动是否放大。");
+  }
+
+  return reportLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function limitMessage(text: string): string {

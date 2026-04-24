@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDigestMessage, buildFallbackMessage } from "../src/lib/message";
+import { buildDigestMessage, buildFallbackMessage, normalizeAnalysisText } from "../src/lib/message";
 import type { JinshiDigestItem } from "../src/types";
 
 function makeItem(overrides: Partial<JinshiDigestItem> = {}): JinshiDigestItem {
@@ -16,13 +16,31 @@ function makeItem(overrides: Partial<JinshiDigestItem> = {}): JinshiDigestItem {
 }
 
 describe("buildDigestMessage", () => {
-  it("formats digest header, source count and links", () => {
-    const result = buildDigestMessage("市场风险偏好回落，地缘政治相关主题再度升温。", [makeItem()], new Date("2026-04-23T12:00:00.000Z"));
-    expect(result).toContain("金十市场简报（网页快照版）");
-    expect(result).toContain("样本数: 1");
-    expect(result).toContain("市场风险偏好回落");
-    expect(result).toContain("参考链接:");
-    expect(result).toContain("https://xnews.jin10.com/details/217456");
+  it("keeps the three-section report style and detail link", () => {
+    const items = [makeItem({ id: "1", title: "第一条", link: "https://xnews.jin10.com/details/1" })];
+    const result = buildDigestMessage(
+      "一、核心判断\n市场风险偏好回落。\n\n二、重点事件\n1. 黄金（XAUUSD）偏强：避险需求升温。\n\n三、后续关注\n1. 关注美元波动。",
+      items,
+      "https://cos.example/detail.md"
+    );
+
+    expect(result).toContain("一、核心判断");
+    expect(result).toContain("二、重点事件");
+    expect(result).toContain("三、后续关注");
+    expect(result).toContain("详细版报告:");
+    expect(result).toContain("https://cos.example/detail.md");
+  });
+});
+
+describe("normalizeAnalysisText", () => {
+  it("normalizes loose output into the target report structure", () => {
+    const raw = "核心判断\n黄金偏强，原油波动加大。\n\n1. 黄金（XAUUSD）偏强：避险需求升温。\n2. 原油（WTI）波动加大：受中东局势影响。\n\n后续关注\n美元波动\n美伊局势";
+    const result = normalizeAnalysisText(raw);
+
+    expect(result).toContain("一、核心判断");
+    expect(result).toContain("二、重点事件");
+    expect(result).toContain("三、后续关注");
+    expect(result).toContain("黄金（XAUUSD）偏强");
   });
 });
 
@@ -32,11 +50,9 @@ describe("buildFallbackMessage", () => {
       makeItem({ title: "第一条快讯" }),
       makeItem({ id: "news-2", sourceType: "news", title: "第二条文章", summary: "这是一段摘要。", link: "https://xnews.jin10.com/details/217468" })
     ];
-    const result = buildFallbackMessage(items, new Date("2026-04-23T12:00:00.000Z"));
-    expect(result).toContain("金十市场简报（降级版）");
-    expect(result).toContain("GPT 分析暂不可用");
-    expect(result).toContain("[快讯] 第一条快讯");
-    expect(result).toContain("[文章] 第二条文章");
-    expect(result).toContain("摘要: 这是一段摘要。");
+    const result = buildFallbackMessage(items, "https://cos.example/detail.md");
+    expect(result).toContain("说明: GPT 分析暂不可用");
+    expect(result).toContain("详细版报告:");
+    expect(result).not.toContain("时间:");
   });
 });

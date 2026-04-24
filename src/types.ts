@@ -5,6 +5,11 @@ export interface Env {
   FEISHU_WEBHOOK: string;
   FEISHU_SECRET?: string;
   MANUAL_TRIGGER_TOKEN?: string;
+  TENCENT_COS_SECRET_ID: string;
+  TENCENT_COS_SECRET_KEY: string;
+  TENCENT_COS_BUCKET: string;
+  TENCENT_COS_REGION: string;
+  TENCENT_COS_BASE_URL?: string;
   LLM_MODEL?: string;
   DIGEST_INTERVAL_HOURS?: string;
   HEARTBEAT_INTERVAL_HOURS?: string;
@@ -21,6 +26,11 @@ export interface BriefConfig {
   feishuWebhook: string;
   feishuSecret: string;
   manualTriggerToken: string;
+  cosSecretId: string;
+  cosSecretKey: string;
+  cosBucket: string;
+  cosRegion: string;
+  cosBaseUrl: string;
   llmModel: string;
   digestIntervalHours: number;
   heartbeatIntervalHours: number;

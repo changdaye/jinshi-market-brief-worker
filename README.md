@@ -5,6 +5,7 @@
 
 ## 功能
 
+- 额外生成超详细版 Markdown 报告并上传到腾讯云 COS
 - 每 **3 小时** 定时生成一次简报
 - 数据源来自：
   - `https://www.jin10.com/` 首页快讯区
@@ -63,6 +64,11 @@ curl http://127.0.0.1:8787/health
 - `FEISHU_WEBHOOK`
 - `FEISHU_SECRET`
 - `MANUAL_TRIGGER_TOKEN`
+- `TENCENT_COS_SECRET_ID`
+- `TENCENT_COS_SECRET_KEY`
+- `TENCENT_COS_BUCKET`
+- `TENCENT_COS_REGION`
+- `TENCENT_COS_BASE_URL`（可选，自定义访问域名）
 
 ## 手动触发
 

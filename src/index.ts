@@ -4,17 +4,25 @@ import { authorizeAdminRequest } from "./lib/admin";
 import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage } from "./lib/message";
 import { getRuntimeState, recordFailure, recordSuccess, setRuntimeState, shouldSendFailureAlert, shouldSendHeartbeat } from "./lib/runtime";
 import { pushToFeishu } from "./services/feishu";
+import { uploadDetailedReportToCos } from "./services/cos";
 import { fetchJinshiSnapshot } from "./services/jinshi";
 import { analyzeWithLLM } from "./services/llm";
+import { buildDetailedReport } from "./lib/report";
 import type { BriefConfig, Env, JinshiDigestItem, RuntimeState } from "./types";
 
-async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: boolean }> {
+async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: boolean; detailedReportUrl?: string }> {
   const config = parseConfig(env);
   const state = await getRuntimeState(env.RUNTIME_KV);
   const now = new Date();
 
   try {
     const result = await buildBrief(env, config, now);
+    const detailedReport = buildDetailedReport(result.analysis ?? result.message, result.items, result.aiAnalysis, now);
+    const uploaded = await uploadDetailedReportToCos(config, detailedReport, now);
+    result.message = result.aiAnalysis
+      ? buildDigestMessage(result.analysis ?? result.message, result.items, uploaded.url)
+      : buildFallbackMessage(result.items, uploaded.url);
+    result.detailedReportUrl = uploaded.url;
     const runId = crypto.randomUUID();
     await insertDigestRun(env.BRIEF_DB, {
       id: runId,
@@ -63,7 +71,7 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
   }
 }
 
-async function buildBrief(env: Env, config: BriefConfig, now: Date): Promise<{ items: JinshiDigestItem[]; message: string; analysis?: string; aiAnalysis: boolean }> {
+async function buildBrief(env: Env, config: BriefConfig, now: Date): Promise<{ items: JinshiDigestItem[]; message: string; analysis?: string; aiAnalysis: boolean; detailedReportUrl?: string }> {
   const snapshot = await fetchJinshiSnapshot(config, now);
   if (snapshot.items.length === 0) {
     throw new Error("Jinshi snapshot returned no items");
@@ -73,7 +81,7 @@ async function buildBrief(env: Env, config: BriefConfig, now: Date): Promise<{ i
     const analysis = await analyzeWithLLM(config, env.AI, snapshot.items);
     return {
       items: snapshot.items,
-      message: buildDigestMessage(analysis, snapshot.items, now),
+      message: buildDigestMessage(analysis, snapshot.items),
       analysis,
       aiAnalysis: true
     };
@@ -81,7 +89,7 @@ async function buildBrief(env: Env, config: BriefConfig, now: Date): Promise<{ i
     console.error("LLM analyze failed", error instanceof Error ? error.message : String(error));
     return {
       items: snapshot.items,
-      message: buildFallbackMessage(snapshot.items, now),
+      message: buildFallbackMessage(snapshot.items),
       aiAnalysis: false
     };
   }
