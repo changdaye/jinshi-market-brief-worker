@@ -21,7 +21,7 @@ describe("buildDigestMessage", () => {
     const result = buildDigestMessage(
       "一、核心判断\n市场风险偏好回落。",
       items,
-      "https://cos.example/detail.md",
+      "https://cos.example/detail.html",
       "GPT 5.4 (xhigh)"
     );
 
@@ -33,14 +33,14 @@ describe("buildDigestMessage", () => {
     const result = buildDigestMessage(
       "一、核心判断\n市场风险偏好回落。\n\n二、重点事件\n1. 黄金（XAUUSD）偏强：避险需求升温。\n\n三、后续关注\n1. 关注美元波动。",
       items,
-      "https://cos.example/detail.md"
+      "https://cos.example/detail.html"
     );
 
     expect(result).toContain("一、核心判断");
     expect(result).toContain("二、重点事件");
     expect(result).toContain("三、后续关注");
     expect(result).toContain("详细版报告:");
-    expect(result).toContain("https://cos.example/detail.md");
+    expect(result).toContain("https://cos.example/detail.html");
   });
 });
 
@@ -59,7 +59,7 @@ describe("normalizeAnalysisText", () => {
 describe("buildFallbackMessage", () => {
   it("includes the model label when provided", () => {
     const items = [makeItem({ title: "第一条快讯" })];
-    const result = buildFallbackMessage(items, "https://cos.example/detail.md", "Llama 3.2 1B Instruct");
+    const result = buildFallbackMessage(items, "https://cos.example/detail.html", "Llama 3.2 1B Instruct");
     expect(result).toContain("🤖 模型：Llama 3.2 1B Instruct");
   });
 
@@ -68,7 +68,7 @@ describe("buildFallbackMessage", () => {
       makeItem({ title: "第一条快讯" }),
       makeItem({ id: "news-2", sourceType: "news", title: "第二条文章", summary: "这是一段摘要。", link: "https://xnews.jin10.com/details/217468" })
     ];
-    const result = buildFallbackMessage(items, "https://cos.example/detail.md");
+    const result = buildFallbackMessage(items, "https://cos.example/detail.html");
     expect(result).toContain("说明: GPT 分析暂不可用");
     expect(result).toContain("详细版报告:");
     expect(result).not.toContain("时间:");

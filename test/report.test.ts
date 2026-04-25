@@ -17,19 +17,20 @@ const items: JinshiDigestItem[] = [
 ];
 
 describe("buildDetailedReport", () => {
-  it("renders a markdown detailed report for Jinshi items", () => {
+  it("renders an html detailed report for Jinshi items", () => {
     const report = buildDetailedReport("一、核心判断\nAI 与避险资产分化。", items, true, new Date("2026-04-24T01:02:03Z"));
-    expect(report).toContain("# 金十市场简报详细版");
-    expect(report).toContain("## 简报摘要");
+    expect(report).toContain("<!doctype html>");
+    expect(report).toContain("<h1>金十市场简报详细版</h1>");
+    expect(report).toContain("<h2>简报摘要</h2>");
     expect(report).toContain("AI 与避险资产分化");
-    expect(report).toContain("### 1. 英伟达链条情绪升温，黄金高位震荡");
-    expect(report).toContain("- 链接: https://xnews.jin10.com/details/217456");
+    expect(report).toContain("1. 英伟达链条情绪升温，黄金高位震荡");
+    expect(report).toContain("https://xnews.jin10.com/details/217456");
   });
 });
 
 describe("buildDetailedReportObjectKey", () => {
-  it("builds a stable markdown object key", () => {
+  it("builds a stable html object key", () => {
     const key = buildDetailedReportObjectKey(new Date("2026-04-24T01:02:03Z"));
-    expect(key).toBe("jinshi-market-brief-worker/20260424010203.md");
+    expect(key).toBe("jinshi-market-brief-worker/20260424010203.html");
   });
 });
