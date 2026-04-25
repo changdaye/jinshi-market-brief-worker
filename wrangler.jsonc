@@ -36,7 +36,7 @@
     "REQUEST_TIMEOUT_MS": "15000",
     "FETCH_WINDOW_HOURS": "2",
     "MAX_ITEMS_PER_DIGEST": "60",
-    "LLM_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "LLM_MODEL": "gpt-5.4",
     "JINSHI_HOME_URL": "https://www.jin10.com/",
     "JINSHI_XNEWS_URL": "https://xnews.jin10.com/",
     "FAILURE_ALERT_THRESHOLD": "1",

@@ -2,8 +2,8 @@ import type { JinshiDigestItem, RuntimeState } from "../types";
 import { truncate } from "./value";
 
 const MAX_MESSAGE_LENGTH = 2600;
-export function buildDigestMessage(analysis: string, items: JinshiDigestItem[], detailedReportUrl?: string): string {
-  const lines = [normalizeAnalysisText(analysis)];
+export function buildDigestMessage(analysis: string, items: JinshiDigestItem[], detailedReportUrl?: string, modelLabel = ""): string {
+  const lines = modelLabel ? [`🤖 模型：${modelLabel}`, "", normalizeAnalysisText(analysis)] : [normalizeAnalysisText(analysis)];
 
   if (detailedReportUrl) {
     lines.push("", "详细版报告:", detailedReportUrl);
@@ -12,8 +12,8 @@ export function buildDigestMessage(analysis: string, items: JinshiDigestItem[], 
   return limitMessage(lines.join("\n"));
 }
 
-export function buildFallbackMessage(items: JinshiDigestItem[], detailedReportUrl?: string): string {
-  const lines = ["说明: GPT 分析暂不可用，以下为重点条目", ""];
+export function buildFallbackMessage(items: JinshiDigestItem[], detailedReportUrl?: string, modelLabel = ""): string {
+  const lines = modelLabel ? [`🤖 模型：${modelLabel}`, "", "说明: GPT 分析暂不可用，以下为重点条目", ""] : ["说明: GPT 分析暂不可用，以下为重点条目", ""];
 
   for (const [index, item] of items.slice(0, 5).entries()) {
     lines.push(`${index + 1}. [${item.sourceType === "flash" ? "快讯" : "文章"}] ${truncate(item.title, 42)}`);

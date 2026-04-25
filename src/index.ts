@@ -22,8 +22,8 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
     const detailedReport = buildDetailedReport(result.analysis ?? result.message, result.items, result.aiAnalysis, now);
     const uploaded = await uploadDetailedReportToCos(config, detailedReport, now);
     const baseMessage = result.aiAnalysis
-      ? buildDigestMessage(result.analysis ?? result.message, result.items, uploaded.url)
-      : buildFallbackMessage(result.items, uploaded.url);
+      ? buildDigestMessage(result.analysis ?? result.message, result.items, uploaded.url, result.modelLabel ?? "")
+      : buildFallbackMessage(result.items, uploaded.url, result.modelLabel ?? "");
     result.message = !quietHours && (state.quietDigestCount ?? 0) > 0
       ? buildWakeSummaryMessage(baseMessage, state.quietDigestCount ?? 0)
       : baseMessage;
@@ -94,18 +94,19 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
   }
 }
 
-async function buildBrief(env: Env, config: BriefConfig, now: Date): Promise<{ items: JinshiDigestItem[]; message: string; analysis?: string; aiAnalysis: boolean; detailedReportUrl?: string }> {
+async function buildBrief(env: Env, config: BriefConfig, now: Date): Promise<{ items: JinshiDigestItem[]; message: string; analysis?: string; modelLabel?: string; aiAnalysis: boolean; detailedReportUrl?: string }> {
   const snapshot = await fetchJinshiSnapshot(config, now);
   if (snapshot.items.length === 0) {
     throw new Error("Jinshi snapshot returned no items");
   }
 
   try {
-    const analysis = await analyzeWithLLM(config, env.AI, snapshot.items);
+    const llmResult = await analyzeWithLLM(config, env.AI, snapshot.items);
     return {
       items: snapshot.items,
-      message: buildDigestMessage(analysis, snapshot.items),
-      analysis,
+      message: buildDigestMessage(llmResult.analysis, snapshot.items, undefined, llmResult.modelLabel),
+      analysis: llmResult.analysis,
+      modelLabel: llmResult.modelLabel,
       aiAnalysis: true
     };
   } catch (error) {

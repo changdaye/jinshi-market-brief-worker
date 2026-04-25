@@ -16,6 +16,18 @@ function makeItem(overrides: Partial<JinshiDigestItem> = {}): JinshiDigestItem {
 }
 
 describe("buildDigestMessage", () => {
+  it("includes the model label when provided", () => {
+    const items = [makeItem({ id: "1", title: "第一条", link: "https://xnews.jin10.com/details/1" })];
+    const result = buildDigestMessage(
+      "一、核心判断\n市场风险偏好回落。",
+      items,
+      "https://cos.example/detail.md",
+      "GPT 5.4 (xhigh)"
+    );
+
+    expect(result).toContain("🤖 模型：GPT 5.4 (xhigh)");
+  });
+
   it("keeps the three-section report style and detail link", () => {
     const items = [makeItem({ id: "1", title: "第一条", link: "https://xnews.jin10.com/details/1" })];
     const result = buildDigestMessage(
@@ -45,6 +57,12 @@ describe("normalizeAnalysisText", () => {
 });
 
 describe("buildFallbackMessage", () => {
+  it("includes the model label when provided", () => {
+    const items = [makeItem({ title: "第一条快讯" })];
+    const result = buildFallbackMessage(items, "https://cos.example/detail.md", "Llama 3.2 1B Instruct");
+    expect(result).toContain("🤖 模型：Llama 3.2 1B Instruct");
+  });
+
   it("renders a readable fallback list when LLM is unavailable", () => {
     const items = [
       makeItem({ title: "第一条快讯" }),
