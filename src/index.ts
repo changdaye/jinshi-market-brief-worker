@@ -9,6 +9,7 @@ import { uploadDetailedReportToCos } from "./services/cos";
 import { fetchJinshiSnapshot } from "./services/jinshi";
 import { analyzeWithLLM } from "./services/llm";
 import { buildDetailedReport } from "./lib/report";
+import { buildDetailedReportPublicUrl, maybeHandleDetailedReportRequest, saveDetailedReportCopy } from "./lib/report-storage";
 import type { BriefConfig, Env, JinshiDigestItem, RuntimeState } from "./types";
 
 async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: boolean; detailedReportUrl?: string }> {
@@ -21,13 +22,15 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
     const result = await buildBrief(env, config, now);
     const detailedReport = buildDetailedReport(result.analysis ?? result.message, result.items, result.aiAnalysis, now);
     const uploaded = await uploadDetailedReportToCos(config, detailedReport, now);
+    await saveDetailedReportCopy(env.RUNTIME_KV, uploaded.key, detailedReport);
+    const publicReportUrl = buildDetailedReportPublicUrl(config.workerPublicBaseUrl, uploaded.key);
     const baseMessage = result.aiAnalysis
-      ? buildDigestMessage(result.analysis ?? result.message, result.items, uploaded.url, result.modelLabel ?? "")
-      : buildFallbackMessage(result.items, uploaded.url, result.modelLabel ?? "");
+      ? buildDigestMessage(result.analysis ?? result.message, result.items, publicReportUrl, result.modelLabel ?? "")
+      : buildFallbackMessage(result.items, publicReportUrl, result.modelLabel ?? "");
     result.message = !quietHours && (state.quietDigestCount ?? 0) > 0
       ? buildWakeSummaryMessage(baseMessage, state.quietDigestCount ?? 0)
       : baseMessage;
-    result.detailedReportUrl = uploaded.url;
+    result.detailedReportUrl = publicReportUrl;
     const runId = crypto.randomUUID();
     await insertDigestRun(env.BRIEF_DB, {
       id: runId,
@@ -77,7 +80,7 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
       }
     }
     await setRuntimeState(env.RUNTIME_KV, nextState);
-    return { itemCount: result.items.length, aiAnalysis: result.aiAnalysis };
+    return { itemCount: result.items.length, aiAnalysis: result.aiAnalysis, detailedReportUrl: result.detailedReportUrl };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     let nextState = recordFailure(state, message, now);
@@ -137,6 +140,11 @@ async function buildHealthResponse(env: Env): Promise<Record<string, unknown>> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+
+    if (request.method === "GET") {
+      const reportResponse = await maybeHandleDetailedReportRequest(request, env.RUNTIME_KV);
+      if (reportResponse) return reportResponse;
+    }
 
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/health")) {
       return jsonResponse(await buildHealthResponse(env));
