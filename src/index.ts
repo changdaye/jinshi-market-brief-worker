@@ -5,7 +5,6 @@ import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, bui
 import { getRuntimeState, recordFailure, recordSuccess, setRuntimeState, shouldSendFailureAlert, shouldSendHeartbeat } from "./lib/runtime";
 import { pushToFeishu } from "./services/feishu";
 import { uploadDetailedReportToCos, uploadFeishuMessageToCos } from "./services/cos";
-import { runFinalSummary } from "./services/final-summary";
 import { fetchJinshiSnapshot } from "./services/jinshi";
 import { analyzeWithLLM } from "./services/llm";
 import { buildDetailedReport } from "./lib/report";
@@ -113,12 +112,7 @@ async function buildHealthResponse(env: Env): Promise<Record<string, unknown>> {
     ok: true,
     worker: "jinshi-market-brief-worker",
     runtimeState,
-    recentRuns,
-    finalSummary: {
-      hourLocal: parseConfig(env).finalSummaryHourLocal,
-      minuteLocal: parseConfig(env).finalSummaryMinuteLocal,
-      lookbackHours: parseConfig(env).finalSummaryLookbackHours
-    }
+    recentRuns
   };
 }
 
@@ -134,22 +128,6 @@ export default {
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/health")) {
       return jsonResponse(await buildHealthResponse(env));
     }
-
-    if (request.method === "POST" && url.pathname === "/admin/final-summary") {
-      const config = parseConfig(env);
-      const auth = authorizeAdminRequest(request, config.manualTriggerToken);
-      if (!auth.ok) {
-        return jsonResponse({ ok: false, error: auth.error }, auth.status);
-      }
-      try {
-        const result = await runFinalSummary(env, config);
-        return jsonResponse({ ok: true, summary: result });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return jsonResponse({ ok: false, error: message }, 500);
-      }
-    }
-
     if (request.method === "POST" && url.pathname === "/admin/trigger") {
       const config = parseConfig(env);
       const auth = authorizeAdminRequest(request, config.manualTriggerToken);
@@ -169,15 +147,6 @@ export default {
   },
 
   async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
-    const config = parseConfig(env);
-    const now = new Date();
-    const [hourPart, minutePart] = new Intl.DateTimeFormat("en-GB", { timeZone: config.marketTimezone, hour: "2-digit", minute: "2-digit", hour12: false }).format(now).split(":");
-    const hour = Number(hourPart);
-    const minute = Number(minutePart);
-    if (hour === config.finalSummaryHourLocal && minute === config.finalSummaryMinuteLocal) {
-      await runFinalSummary(env, config, now);
-      return;
-    }
     await runBrief(env);
   }
 };

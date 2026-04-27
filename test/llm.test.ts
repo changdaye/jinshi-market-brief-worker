@@ -25,10 +25,7 @@ function makeConfig(): BriefConfig {
     llmApiKey: "",
     jinshiHomeUrl: "https://www.jin10.com/",
     jinshiXnewsUrl: "https://xnews.jin10.com/",
-    finalSummaryHourLocal: 0,
-    finalSummaryMinuteLocal: 30,
-    finalSummaryLookbackHours: 24,
-    marketTimezone: "Asia/Shanghai"
+    marketTimezone: "Asia/Shanghai",
   };
 }
 

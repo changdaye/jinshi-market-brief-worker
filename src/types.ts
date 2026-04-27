@@ -23,9 +23,6 @@ export interface Env {
   FAILURE_ALERT_COOLDOWN_MINUTES?: string;
   JINSHI_HOME_URL?: string;
   JINSHI_XNEWS_URL?: string;
-  FINAL_SUMMARY_HOUR_LOCAL?: string;
-  FINAL_SUMMARY_MINUTE_LOCAL?: string;
-  FINAL_SUMMARY_LOOKBACK_HOURS?: string;
   MARKET_TIMEZONE?: string;
 }
 
@@ -51,9 +48,6 @@ export interface BriefConfig {
   failureAlertCooldownMinutes: number;
   jinshiHomeUrl: string;
   jinshiXnewsUrl: string;
-  finalSummaryHourLocal: number;
-  finalSummaryMinuteLocal: number;
-  finalSummaryLookbackHours: number;
   marketTimezone: string;
 }
 
