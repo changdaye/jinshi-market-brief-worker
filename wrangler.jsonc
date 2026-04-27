@@ -10,7 +10,7 @@
     "enabled": true
   },
   "triggers": {
-    "crons": ["0 */2 * * *"]
+    "crons": ["0 */2 * * *", "30 16 * * *"]
   },
   "kv_namespaces": [
     {
@@ -40,6 +40,10 @@
     "JINSHI_HOME_URL": "https://www.jin10.com/",
     "JINSHI_XNEWS_URL": "https://xnews.jin10.com/",
     "FAILURE_ALERT_THRESHOLD": "1",
-    "FAILURE_ALERT_COOLDOWN_MINUTES": "180"
+    "FAILURE_ALERT_COOLDOWN_MINUTES": "180",
+    "FINAL_SUMMARY_HOUR_LOCAL": "0",
+    "FINAL_SUMMARY_MINUTE_LOCAL": "30",
+    "FINAL_SUMMARY_LOOKBACK_HOURS": "24",
+    "MARKET_TIMEZONE": "Asia/Shanghai"
   }
 }

@@ -30,6 +30,10 @@ export function parseConfig(env: Env): BriefConfig {
     failureAlertThreshold: toInt(env.FAILURE_ALERT_THRESHOLD, 1, 1),
     failureAlertCooldownMinutes: toInt(env.FAILURE_ALERT_COOLDOWN_MINUTES, 180, 1),
     jinshiHomeUrl: env.JINSHI_HOME_URL?.trim() || "https://www.jin10.com/",
-    jinshiXnewsUrl: env.JINSHI_XNEWS_URL?.trim() || "https://xnews.jin10.com/"
+    jinshiXnewsUrl: env.JINSHI_XNEWS_URL?.trim() || "https://xnews.jin10.com/",
+    finalSummaryHourLocal: toInt(env.FINAL_SUMMARY_HOUR_LOCAL, 0, 0),
+    finalSummaryMinuteLocal: toInt(env.FINAL_SUMMARY_MINUTE_LOCAL, 30, 0),
+    finalSummaryLookbackHours: toInt(env.FINAL_SUMMARY_LOOKBACK_HOURS, 24, 1),
+    marketTimezone: env.MARKET_TIMEZONE?.trim() || "Asia/Shanghai"
   };
 }

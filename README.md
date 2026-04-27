@@ -93,3 +93,10 @@ curl -X POST \
 - AI 能力由 Cloudflare Workers AI 提供，默认模型为低成本文本模型
 - 页面结构、文案、链接结构变化会影响抓取结果
 - 站点条款与数据使用限制需要你自行评估并承担合规责任
+
+
+## 飞书消息归档与凌晨总结
+
+- 每次发到飞书的短消息会额外写入 `jinshi-market-brief-worker/feishu-messages/YYYYMMDDHHMMSS.txt`
+- 每天凌晨 00:30（Asia/Shanghai）会读取最近 24 小时消息，生成 `jinshi-market-brief-worker/final-summaries/YYYYMMDDHHMMSS.txt`
+- 可手动调用 `/admin/final-summary` 触发凌晨总结
