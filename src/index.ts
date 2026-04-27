@@ -1,9 +1,8 @@
 import { parseConfig } from "./config";
 import { insertDigestRun, listRecentDigestRuns, markDigestRunPushed } from "./db";
 import { authorizeAdminRequest } from "./lib/admin";
-import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage, buildWakeSummaryMessage } from "./lib/message";
+import { buildDigestMessage, buildFailureAlertMessage, buildFallbackMessage, buildHeartbeatMessage } from "./lib/message";
 import { getRuntimeState, recordFailure, recordSuccess, setRuntimeState, shouldSendFailureAlert, shouldSendHeartbeat } from "./lib/runtime";
-import { clearQuietDigest, isDigestQuietHours, noteQuietDigest } from "./lib/schedule";
 import { pushToFeishu } from "./services/feishu";
 import { uploadDetailedReportToCos, uploadFeishuMessageToCos } from "./services/cos";
 import { runFinalSummary } from "./services/final-summary";
@@ -17,7 +16,6 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
   const config = parseConfig(env);
   const state = await getRuntimeState(env.RUNTIME_KV);
   const now = new Date();
-  const quietHours = isDigestQuietHours(now);
 
   try {
     const result = await buildBrief(env, config, now);
@@ -28,9 +26,7 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
     const baseMessage = result.aiAnalysis
       ? buildDigestMessage(result.analysis ?? result.message, result.items, publicReportUrl, result.modelLabel ?? "")
       : buildFallbackMessage(result.items, publicReportUrl, result.modelLabel ?? "");
-    result.message = !quietHours && (state.quietDigestCount ?? 0) > 0
-      ? buildWakeSummaryMessage(baseMessage, state.quietDigestCount ?? 0)
-      : baseMessage;
+    result.message = baseMessage;
     result.detailedReportUrl = publicReportUrl;
     const runId = crypto.randomUUID();
     await insertDigestRun(env.BRIEF_DB, {
@@ -45,21 +41,6 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
     });
 
     let nextState = recordSuccess(state, now);
-    if (quietHours) {
-      nextState = noteQuietDigest(nextState, now);
-      await markDigestRunPushed(env.BRIEF_DB, runId, true);
-      if (shouldSendHeartbeat(nextState, config.heartbeatIntervalHours, now)) {
-        try {
-          await pushToFeishu(config, buildHeartbeatMessage(nextState, config.heartbeatIntervalHours));
-          nextState = { ...nextState, lastHeartbeatAt: now.toISOString() };
-        } catch {
-          // Heartbeat should not fail the main digest flow.
-        }
-      }
-      await setRuntimeState(env.RUNTIME_KV, nextState);
-      return { itemCount: result.items.length, aiAnalysis: result.aiAnalysis, detailedReportUrl: result.detailedReportUrl };
-    }
-
     try {
       await uploadFeishuMessageToCos(config, result.message, now);
       await pushToFeishu(config, result.message);
@@ -70,9 +51,6 @@ async function runBrief(env: Env): Promise<{ itemCount: number; aiAnalysis: bool
       throw error;
     }
 
-    if ((nextState.quietDigestCount ?? 0) > 0) {
-      nextState = clearQuietDigest(nextState);
-    }
     if (shouldSendHeartbeat(nextState, config.heartbeatIntervalHours, now)) {
       try {
         await pushToFeishu(config, buildHeartbeatMessage(nextState, config.heartbeatIntervalHours));
